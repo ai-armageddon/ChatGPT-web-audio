@@ -74,7 +74,7 @@ html.dark .cgpt-audio-hijacker-btn:hover {
   top: 80px;
   right: 24px;
   z-index: 2147483647;
-  width: 300px;
+  width: min(360px, calc(100vw - 24px));
   border: 1px solid var(--ah-border);
   border-radius: 14px;
   background: var(--ah-bg);
@@ -83,7 +83,7 @@ html.dark .cgpt-audio-hijacker-btn:hover {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   user-select: none;
   overflow: hidden;
 
@@ -132,7 +132,7 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   background: var(--ah-header-bg);
   cursor: grab;
   position: relative;
@@ -155,8 +155,8 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -176,13 +176,13 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 4px;
+  padding: 13px 15px 6px;
 }
 .cgpt-ah-current,
 .cgpt-ah-total {
-  min-width: 34px;
+  min-width: 38px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   opacity: 0.7;
 }
@@ -231,8 +231,8 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 8px 12px 12px;
+  gap: 12px;
+  padding: 10px 15px 15px;
 }
 
 .cgpt-ah-controls button {
@@ -253,13 +253,13 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
 
 .cgpt-ah-back,
 .cgpt-ah-fwd {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
 }
 /* More specific than `.cgpt-ah-controls button`, so no !important needed */
 .cgpt-ah-controls .cgpt-ah-play {
-  width: 46px;
-  height: 46px;
+  width: 50px;
+  height: 50px;
   background: var(--ah-play-bg);
   color: var(--ah-play-fg);
 }
@@ -267,11 +267,33 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
   background: var(--ah-play-hover);
 }
 
-.cgpt-ah-skip-label {
-  position: absolute;
-  font-size: 8px;
+/* The skip interval is drawn inside the arc of its own icon, so it can never
+   collide with the arrow or with the neighbouring controls. */
+.cgpt-ah-skip-num {
+  fill: currentColor;
+  stroke: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 10px;
   font-weight: 700;
-  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.cgpt-ah-controls .cgpt-ah-loop {
+  gap: 3px;
+  min-width: 54px;
+  padding: 5px 8px;
+  border: 1px solid var(--ah-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.cgpt-ah-controls .cgpt-ah-loop span {
+  font-size: 10px;
+}
+.cgpt-ah-controls .cgpt-ah-loop.cgpt-ah-loop-active {
+  background: var(--ah-play-bg);
+  color: var(--ah-play-fg);
 }
 
 /* Speed is a pill button that cycles through rates on click */
@@ -298,4 +320,706 @@ html.dark #cgpt-audio-hijacker-panel.cgpt-ah-dragging {
 .cgpt-ah-scrubber:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* ================= Micro pill player =================
+   The dock is a zero-size fixed anchor point; the pill inside is centered on
+   it with translate(-50%, -50%) so the ball→pill growth expands from center. */
+
+#cgpt-ah-pilldock {
+  --ah-bg: rgba(255, 255, 255, 0.92);
+  --ah-text: #0d0d0d;
+  --ah-border: rgba(0, 0, 0, 0.1);
+  --ah-header-bg: rgba(0, 0, 0, 0.04);
+  --ah-surface: rgba(0, 0, 0, 0.06);
+  --ah-surface-hover: rgba(0, 0, 0, 0.12);
+  --ah-track: rgba(0, 0, 0, 0.15);
+  --ah-fill: #0d0d0d;
+  --ah-play-bg: #0d0d0d;
+  --ah-play-fg: #ffffff;
+  --ah-play-hover: #2f2f2f;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  color: var(--ah-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  user-select: none;
+  transition: left 0.25s ease, top 0.25s ease;
+}
+
+html.dark #cgpt-ah-pilldock {
+  --ah-bg: rgba(24, 24, 27, 0.95);
+  --ah-text: #f4f4f5;
+  --ah-border: rgba(255, 255, 255, 0.12);
+  --ah-header-bg: rgba(255, 255, 255, 0.06);
+  --ah-surface: rgba(255, 255, 255, 0.08);
+  --ah-surface-hover: rgba(255, 255, 255, 0.18);
+  --ah-track: rgba(255, 255, 255, 0.25);
+  --ah-fill: #f4f4f5;
+  --ah-play-bg: #ececec;
+  --ah-play-fg: #0d0d0d;
+  --ah-play-hover: #ffffff;
+}
+
+#cgpt-ah-pilldock .cgpt-ah-pill {
+  /* Control sizes scale with the pill so the progress bar's hit area always
+     clears the buttons: --ah-bar must stay under (height - play) / 2 - 2. */
+  --ah-pill-diameter: 62px;
+  --ah-pill-height: 64px;
+  --ah-btn: 36px;
+  --ah-btn-sm: 30px;
+  --ah-bar: 8px;
+  position: absolute;
+  width: var(--ah-pill-diameter);
+  height: var(--ah-pill-diameter);
+  border: 1px solid var(--ah-border);
+  border-radius: 999px;
+  background: var(--ah-bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s linear 0.28s;
+}
+html.dark #cgpt-ah-pilldock .cgpt-ah-pill {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+#cgpt-ah-pilldock.cgpt-ah-visible .cgpt-ah-pill {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s;
+}
+
+/* Expanded pill (hover or playback in bottom mode; permanent in top mode).
+   --ah-pill-w is measured by JS against the conversation column so the pill
+   shrinks instead of sliding off-centre when space is tight. */
+#cgpt-ah-pilldock.cgpt-ah-expanded .cgpt-ah-pill {
+  width: var(--ah-pill-w, min(460px, 94vw));
+  height: var(--ah-pill-height);
+}
+
+#cgpt-ah-pilldock.cgpt-ah-pill-size-small .cgpt-ah-pill {
+  --ah-pill-diameter: 54px;
+  --ah-pill-height: 56px;
+  --ah-btn: 32px;
+  --ah-btn-sm: 27px;
+  --ah-bar: 7px;
+}
+#cgpt-ah-pilldock.cgpt-ah-pill-size-large .cgpt-ah-pill {
+  --ah-pill-diameter: 70px;
+  --ah-pill-height: 72px;
+  --ah-btn: 40px;
+  --ah-btn-sm: 34px;
+  --ah-bar: 9px;
+}
+
+/* Top position: sticky, centered, with a comfortable top margin.
+   JS overrides left/top to centre on the chat column instead of the viewport. */
+#cgpt-ah-pilldock.cgpt-ah-pos-top {
+  top: 42px; /* 14px margin + half the 56px pill height */
+  left: 50%;
+}
+
+/* --- Collapsed ball layer --- */
+#cgpt-ah-pilldock .cgpt-ah-ball {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ah-text);
+  cursor: pointer;
+  transition: opacity 0.18s ease;
+}
+#cgpt-ah-pilldock.cgpt-ah-expanded .cgpt-ah-ball {
+  opacity: 0;
+  pointer-events: none;
+}
+#cgpt-ah-pilldock .cgpt-ah-ball:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Progress ring around the ball; JS drives stroke-dashoffset */
+#cgpt-ah-pilldock .cgpt-ah-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#cgpt-ah-pilldock .cgpt-ah-ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+#cgpt-ah-pilldock .cgpt-ah-ring-bg {
+  stroke: var(--ah-track);
+  opacity: 0.45;
+}
+#cgpt-ah-pilldock .cgpt-ah-ring-fg {
+  stroke: var(--ah-fill);
+  stroke-linecap: round;
+  stroke-dasharray: 144.51; /* 2π × 23 */
+  stroke-dashoffset: 144.51;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 0.25s linear;
+}
+
+/* Fake waveform: bars animate only while audio is playing */
+#cgpt-ah-pilldock .cgpt-ah-wave {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 18px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+#cgpt-ah-pilldock .cgpt-ah-wave i {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleY(0.35);
+}
+#cgpt-ah-pilldock.cgpt-ah-playing .cgpt-ah-wave {
+  opacity: 1;
+}
+#cgpt-ah-pilldock.cgpt-ah-playing .cgpt-ah-wave i {
+  animation: cgpt-ah-wavebar 0.9s ease-in-out infinite;
+}
+#cgpt-ah-pilldock .cgpt-ah-wave i:nth-child(1) { animation-delay: 0s; }
+#cgpt-ah-pilldock .cgpt-ah-wave i:nth-child(2) { animation-delay: 0.12s; }
+#cgpt-ah-pilldock .cgpt-ah-wave i:nth-child(3) { animation-delay: 0.24s; }
+#cgpt-ah-pilldock .cgpt-ah-wave i:nth-child(4) { animation-delay: 0.36s; }
+#cgpt-ah-pilldock .cgpt-ah-wave i:nth-child(5) { animation-delay: 0.48s; }
+@keyframes cgpt-ah-wavebar {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+#cgpt-ah-pilldock .cgpt-ah-ball-icon {
+  position: absolute;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+#cgpt-ah-pilldock:not(.cgpt-ah-playing) .cgpt-ah-ball-icon {
+  opacity: 1;
+}
+
+/* --- Expanded controls layer (reuses panel classes + iconography) ---
+   A 1fr / auto / 1fr grid pins the play button to the exact centre of the
+   pill, which is where the collapsed ball sits: expanding grows the pill
+   *around* the pointer instead of moving the button away from it. */
+#cgpt-ah-pilldock .cgpt-ah-pill-controls {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease 0.05s;
+}
+#cgpt-ah-pilldock.cgpt-ah-expanded .cgpt-ah-pill-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#cgpt-ah-pilldock .cgpt-ah-pill-side,
+#cgpt-ah-pilldock .cgpt-ah-pill-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-side-end {
+  justify-content: flex-end;
+}
+
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-play {
+  width: var(--ah-btn);
+  height: var(--ah-btn);
+  flex-shrink: 0;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-play svg {
+  width: 15px;
+  height: 15px;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-back,
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-fwd {
+  width: var(--ah-btn-sm);
+  height: var(--ah-btn-sm);
+  flex-shrink: 0;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-back svg,
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-fwd svg {
+  width: 18px;
+  height: 18px;
+}
+#cgpt-ah-pilldock.cgpt-ah-pill-size-small .cgpt-ah-pill-controls .cgpt-ah-back svg,
+#cgpt-ah-pilldock.cgpt-ah-pill-size-small .cgpt-ah-pill-controls .cgpt-ah-fwd svg {
+  width: 16px;
+  height: 16px;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-loop {
+  min-width: 0;
+  padding: 3px 7px;
+  gap: 2px;
+  font-size: 10.5px;
+  flex-shrink: 0;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-loop span {
+  font-size: 10px;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-speed {
+  min-width: 44px;
+  margin-left: 0;
+  padding: 3px 7px;
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-controls .cgpt-ah-close {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+#cgpt-ah-pilldock .cgpt-ah-pill-time {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0.65;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-time .cgpt-ah-current,
+#cgpt-ah-pilldock .cgpt-ah-pill-time .cgpt-ah-total {
+  min-width: 0;
+  font-size: inherit;
+  opacity: 1;
+}
+
+/* Narrow pill (small window or a slim conversation column): shed the labels
+   the side columns can no longer fit rather than clipping them. */
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-sep,
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-pill-time .cgpt-ah-total,
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-pill-controls .cgpt-ah-loop span {
+  display: none;
+}
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-pill-controls .cgpt-ah-loop {
+  width: var(--ah-btn-sm);
+  height: var(--ah-btn-sm);
+  padding: 0;
+}
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-pill-controls .cgpt-ah-speed {
+  min-width: 34px;
+  padding: 3px 5px;
+  font-size: 10px;
+}
+#cgpt-ah-pilldock.cgpt-ah-pill-compact .cgpt-ah-pill-time {
+  font-size: 10px;
+}
+
+/* Progress runs along the bottom edge so the control row stays free and the
+   play button keeps the vertical centre of the pill. */
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline {
+  position: absolute;
+  right: 16px;
+  bottom: 2px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  height: var(--ah-bar);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease 0.05s;
+}
+#cgpt-ah-pilldock.cgpt-ah-expanded .cgpt-ah-pill-timeline {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Chrome gives range inputs a ~129px intrinsic min-width; without this the
+   bar can't shrink inside a narrow pill. The visible track is painted on
+   ::-webkit-slider-runnable-track so the input itself can stay tall enough
+   to click. */
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline .cgpt-ah-scrubber {
+  flex: 1;
+  min-width: 0;
+  height: var(--ah-bar);
+  background: none;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline .cgpt-ah-scrubber::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--ah-fill) 0%,
+    var(--ah-fill) var(--ah-pct, 0%),
+    var(--ah-track) var(--ah-pct, 0%),
+    var(--ah-track) 100%
+  );
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline .cgpt-ah-scrubber::-webkit-slider-thumb {
+  width: 9px;
+  height: 9px;
+  margin-top: -3px;
+  opacity: 0;
+}
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline:hover .cgpt-ah-scrubber::-webkit-slider-thumb,
+#cgpt-ah-pilldock .cgpt-ah-pill-timeline .cgpt-ah-scrubber:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+/* ================= Onboarding style picker ================= */
+
+#cgpt-ah-onboard {
+  --ah-bg: rgba(255, 255, 255, 0.92);
+  --ah-text: #0d0d0d;
+  --ah-border: rgba(0, 0, 0, 0.1);
+  --ah-header-bg: rgba(0, 0, 0, 0.04);
+  --ah-surface: rgba(0, 0, 0, 0.06);
+  --ah-surface-hover: rgba(0, 0, 0, 0.12);
+  --ah-track: rgba(0, 0, 0, 0.15);
+  --ah-fill: #0d0d0d;
+  --ah-play-bg: #0d0d0d;
+  --ah-play-fg: #ffffff;
+  --ah-play-hover: #2f2f2f;
+
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ah-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+html.dark #cgpt-ah-onboard {
+  --ah-bg: rgba(24, 24, 27, 0.95);
+  --ah-text: #f4f4f5;
+  --ah-border: rgba(255, 255, 255, 0.12);
+  --ah-header-bg: rgba(255, 255, 255, 0.06);
+  --ah-surface: rgba(255, 255, 255, 0.08);
+  --ah-surface-hover: rgba(255, 255, 255, 0.18);
+  --ah-track: rgba(255, 255, 255, 0.25);
+  --ah-fill: #f4f4f5;
+  --ah-play-bg: #ececec;
+  --ah-play-fg: #0d0d0d;
+  --ah-play-hover: #ffffff;
+
+  background: rgba(0, 0, 0, 0.55);
+}
+#cgpt-ah-onboard.cgpt-ah-ob-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-card {
+  width: min(680px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 36px;
+  border: 1px solid var(--ah-border);
+  border-radius: 18px;
+  background: var(--ah-bg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: center;
+  animation: cgpt-ah-ob-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cgpt-ah-ob-pop {
+  from {
+    transform: scale(0.92) translateY(12px);
+    opacity: 0;
+  }
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-sub {
+  margin: 8px auto 0;
+  max-width: 500px;
+  font-size: 15px;
+  line-height: 1.5;
+  opacity: 0.65;
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 28px;
+}
+@media (max-width: 560px) {
+  #cgpt-ah-onboard .cgpt-ah-ob-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 18px 20px;
+  border: 2px solid var(--ah-border);
+  border-radius: 14px;
+  background: var(--ah-surface);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-option:hover {
+  border-color: var(--ah-track);
+  transform: translateY(-2px);
+}
+#cgpt-ah-onboard .cgpt-ah-ob-option.selected {
+  border-color: var(--ah-fill);
+  box-shadow: 0 0 0 3px var(--ah-track);
+}
+#cgpt-ah-onboard .cgpt-ah-ob-option:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-desc {
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: 0.62;
+}
+
+/* CSS-only mini previews inside the option cards */
+#cgpt-ah-onboard .cgpt-ah-ob-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88px;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-preview-pill {
+  gap: 12px;
+}
+#cgpt-ah-onboard .pv-panel {
+  display: flex;
+  flex-direction: column;
+  width: 144px;
+  height: 88px;
+  border: 1px solid var(--ah-border);
+  border-radius: 10px;
+  background: var(--ah-bg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+#cgpt-ah-onboard .pv-panel-head {
+  height: 16px;
+  background: var(--ah-header-bg);
+  border-bottom: 1px solid var(--ah-border);
+}
+#cgpt-ah-onboard .pv-panel-line {
+  position: relative;
+  height: 3px;
+  margin: 14px 14px 0;
+  border-radius: 2px;
+  background: var(--ah-track);
+}
+#cgpt-ah-onboard .pv-panel-line::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  border-radius: 2px;
+  background: var(--ah-fill);
+}
+#cgpt-ah-onboard .pv-panel-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+#cgpt-ah-onboard .pv-panel-controls i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ah-track);
+}
+#cgpt-ah-onboard .pv-panel-controls i:nth-child(2) {
+  width: 14px;
+  height: 14px;
+  margin-top: -2px;
+  background: var(--ah-play-bg);
+}
+#cgpt-ah-onboard .pv-ball {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--ah-border);
+  border-radius: 50%;
+  background: var(--ah-bg);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+#cgpt-ah-onboard .pv-ball i {
+  width: 2.5px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--ah-fill);
+  transform: scaleY(0.4);
+  animation: cgpt-ah-wavebar 1s ease-in-out infinite;
+}
+#cgpt-ah-onboard .pv-ball i:nth-child(1) { animation-delay: 0s; }
+#cgpt-ah-onboard .pv-ball i:nth-child(2) { animation-delay: 0.12s; }
+#cgpt-ah-onboard .pv-ball i:nth-child(3) { animation-delay: 0.24s; }
+#cgpt-ah-onboard .pv-ball i:nth-child(4) { animation-delay: 0.36s; }
+#cgpt-ah-onboard .pv-ball i:nth-child(5) { animation-delay: 0.48s; }
+#cgpt-ah-onboard .pv-pill {
+  width: 78px;
+  height: 27px;
+  border: 1.5px dashed var(--ah-track);
+  border-radius: 999px;
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-poswrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-poslabel {
+  font-size: 14px;
+  opacity: 0.65;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-seg {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--ah-border);
+  border-radius: 999px;
+  background: var(--ah-surface);
+}
+#cgpt-ah-onboard .cgpt-ah-ob-seg button {
+  padding: 7px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  opacity: 0.65;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-seg button:hover {
+  opacity: 0.9;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-seg button.active {
+  background: var(--ah-play-bg);
+  color: var(--ah-play-fg);
+  opacity: 1;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-seg button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+#cgpt-ah-onboard .cgpt-ah-ob-confirm {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ah-play-bg);
+  color: var(--ah-play-fg);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-confirm:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+#cgpt-ah-onboard .cgpt-ah-ob-confirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-confirm:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-skip {
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  opacity: 0.55;
+  text-decoration: underline;
+  cursor: pointer;
+}
+#cgpt-ah-onboard .cgpt-ah-ob-skip:hover {
+  opacity: 0.85;
+}
+
+/* Reduced motion: keep the UI calm for users who ask for it */
+@media (prefers-reduced-motion: reduce) {
+  #cgpt-ah-pilldock,
+  #cgpt-ah-pilldock .cgpt-ah-pill {
+    transition-duration: 0.01s !important;
+  }
+  #cgpt-ah-pilldock .cgpt-ah-wave i,
+  #cgpt-ah-onboard .pv-ball i {
+    animation: none;
+  }
+  #cgpt-ah-onboard .cgpt-ah-ob-card {
+    animation: none;
+  }
 }

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChatGPT Audio Hijacker</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="hd">
+      <h1>ChatGPT Audio Hijacker</h1>
+      <p>Player preferences</p>
+    </header>
+
+    <main>
+      <section class="group" aria-label="Player style">
+        <h2>Player style</h2>
+        <div class="cards">
+          <button type="button" class="card" id="modePanel" aria-pressed="false">
+            <span class="pv" aria-hidden="true">
+              <span class="pv-panel">
+                <span class="pv-panel-head"></span>
+                <span class="pv-panel-line"></span>
+                <span class="pv-panel-controls"><i></i><i></i><i></i></span>
+              </span>
+            </span>
+            <span class="card-name">Floating Panel</span>
+            <span class="card-desc">Draggable, full timeline</span>
+          </button>
+          <button type="button" class="card" id="modePill" aria-pressed="false">
+            <span class="pv pv-pillrow" aria-hidden="true">
+              <span class="pv-ball"><i></i><i></i><i></i><i></i><i></i></span>
+              <span class="pv-pill"></span>
+            </span>
+            <span class="card-name">Micro Pill</span>
+            <span class="card-desc">Chat-centred, opens on hover</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="group" id="posGroup" aria-label="Pill position" hidden>
+        <h2>Pill position</h2>
+        <div class="seg" role="group" aria-label="Pill position">
+          <button type="button" id="posTop">Top of screen</button>
+          <button type="button" id="posBottom">By the composer</button>
+        </div>
+      </section>
+
+      <section class="group" id="sizeGroup" aria-label="Pill size" hidden>
+        <h2>Pill size</h2>
+        <div class="seg" role="group" aria-label="Pill size">
+          <button type="button" id="sizeSmall">Small</button>
+          <button type="button" id="sizeMedium">Medium</button>
+          <button type="button" id="sizeLarge">Large</button>
+        </div>
+      </section>
+
+      <section class="group" aria-label="Keyboard commands">
+        <h2>Keyboard commands</h2>
+        <p class="group-note">Click a shortcut, then press a key combination. Shortcuts never run while you are typing.</p>
+        <div class="shortcut-list">
+          <label>Play / pause <input id="shortcutToggle" class="shortcut" type="text" readonly aria-label="Play or pause shortcut" /></label>
+          <label>Back 10 seconds <input id="shortcutBack" class="shortcut" type="text" readonly aria-label="Back 10 seconds shortcut" /></label>
+          <label>Forward 10 seconds <input id="shortcutForward" class="shortcut" type="text" readonly aria-label="Forward 10 seconds shortcut" /></label>
+        </div>
+      </section>
+    </main>
+
+    <footer class="ft">
+      <button type="button" class="link" id="rerun">Re-run setup</button>
+      <p class="hint" id="hint" hidden></p>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
