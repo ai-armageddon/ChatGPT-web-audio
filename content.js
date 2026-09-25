@@ -30,6 +30,22 @@
   const RING_R = 23;
   const RING_C = 2 * Math.PI * RING_R;
   const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)');
+  // ChatGPT currently serves two conversation renderers. The classic one uses
+  // `.turn-action-controls`; the newer renderer exposes a semantic Response
+  // actions group. Keep both here so DOM changes stay isolated to discovery.
+  const ACTION_ROW_SELECTOR = [
+    '[data-assistant-message-actions]',
+    '[data-message-actions][aria-label*="response action" i]',
+    '[role="group"][aria-label*="response action" i]',
+    '.turn-action-controls',
+  ].join(', ');
+  const TURN_SELECTOR = [
+    '[data-testid^="conversation-turn"]',
+    'article',
+    'li[data-message-role]',
+    '[data-message-author-role]',
+    '[data-turn]',
+  ].join(', ');
 
   let preferredSpeed = DEFAULT_SPEED;
   let activeAudio = null;
@@ -154,7 +170,7 @@
   }
 
   function triggerReadAloud(actionRow) {
-    const scope = actionRow.closest('[data-testid^="conversation-turn"], article') || actionRow;
+    const scope = actionRow.closest(TURN_SELECTOR) || actionRow;
 
     const direct = findNativeReadAloudButton(scope);
     if (direct) {
@@ -225,53 +241,106 @@
     }
   }
 
-  function isAssistantActionRow(row) {
-    const turn = row.closest('[data-testid^="conversation-turn"], article');
-    if (!turn) return false;
+  function assistantContentText(row, turn) {
+    // Older turns put the role on the message body; the newer list renderer
+    // puts the role on the <li> and marks its Markdown body explicitly.
+    const content = turn?.querySelector(
+      '[data-assistant-markdown], [data-message-author-role="assistant"]'
+    );
+    if (content?.innerText?.trim()) return content.innerText.trim();
 
-    // ChatGPT currently exposes the role on the turn itself (`data-turn`) and/or
-    // on a descendant (`data-message-author-role`). Require an explicit assistant
-    // role so user action rows never receive a button that cannot play anything.
+    // The current signed-in renderer groups a user prompt and assistant reply
+    // into one turn. Its assistant attribution is a sibling of the response
+    // body, while the action row sits just after that message block.
+    const actionOwner = row.parentElement;
+    const attribution = actionOwner?.querySelector('[data-conversation-role="assistant"]');
+    if (attribution?.parentElement) {
+      const text = Array.from(attribution.parentElement.children)
+        .filter((element) => element !== attribution)
+        .map((element) => element.innerText || '')
+        .join(' ')
+        .trim();
+      if (text) return text;
+    }
+
+    // Some variants expose only the role on the turn. Remove the accessible
+    // attribution before checking its text so an empty/image-only response is
+    // not mistaken for readable content.
+    const role = (
+      turn?.getAttribute('data-message-role') ||
+      turn?.getAttribute('data-turn') ||
+      turn?.getAttribute('data-message-author-role') ||
+      ''
+    ).toLowerCase();
+    if (role === 'assistant') {
+      return Array.from(turn.children)
+        .filter((element) =>
+          element !== row &&
+          !element.matches(ACTION_ROW_SELECTOR) &&
+          !element.matches('[data-message-attribution], [data-conversation-role="assistant"]')
+        )
+        .map((element) => element.innerText || '')
+        .join(' ')
+        .replace(/^\s*chatgpt said:\s*/i, '')
+        .trim();
+    }
+    return '';
+  }
+
+  function isAssistantActionRow(row) {
+    if (!row) return false;
+
+    const turn = row.closest(TURN_SELECTOR);
     const turnRole = (
-      turn.getAttribute('data-turn') ||
-      turn.getAttribute('data-message-author-role') ||
+      turn?.getAttribute('data-message-role') ||
+      turn?.getAttribute('data-turn') ||
+      turn?.getAttribute('data-message-author-role') ||
       ''
     ).toLowerCase();
     if (turnRole && turnRole !== 'assistant') return false;
 
-    const message = turn.querySelector('[data-message-author-role]');
-    const messageRole = message?.getAttribute('data-message-author-role')?.toLowerCase();
-    if (!turnRole && messageRole !== 'assistant') return false;
+    const explicitlyAssistant =
+      row.hasAttribute('data-assistant-message-actions') ||
+      /response action/i.test(row.getAttribute('aria-label') || '') ||
+      Boolean(row.querySelector([
+        'button[data-testid="copy-turn-action-button"]',
+        'button[data-testid="voice-play-turn-action-button"]',
+        'button[aria-label="Copy response" i]',
+        'button[aria-label="Copy" i]',
+        'button[aria-label="Rate response" i]',
+        'button[aria-label="Regenerate response" i]',
+      ].join(', ')));
+    if (!explicitlyAssistant) return false;
 
     // Read Aloud is only available when the assistant turn contains readable
-    // text. Image-only generations still receive a Copy action row, but their
-    // turn has no assistant text container and therefore no audio to trigger.
-    const assistantMessage = turn.querySelector('[data-message-author-role="assistant"]');
-    return Boolean(assistantMessage?.innerText?.trim());
+    // text. Image-only generations can still receive an action row.
+    return Boolean(assistantContentText(row, turn));
   }
 
   function findActionRows(root) {
-    // User turns and image-only assistant turns also have Copy buttons, so use
-    // them only to locate action rows and then require playable assistant text.
-    const selector =
-      'button[data-testid="copy-turn-action-button"], button[aria-label="Copy" i]';
-    const copyButtons = [
-      ...(root.matches?.(selector) ? [root] : []),
-      ...root.querySelectorAll(selector),
-    ];
     const rows = new Set();
-    copyButtons.forEach((btn) => {
-      const row = btn.parentElement;
-      if (!row) return;
+    if (root.matches?.(ACTION_ROW_SELECTOR)) rows.add(root);
+    const containingRow = root.closest?.(ACTION_ROW_SELECTOR);
+    if (containingRow) rows.add(containingRow);
+    root.querySelectorAll?.(ACTION_ROW_SELECTOR).forEach((row) => rows.add(row));
 
-      if (isAssistantActionRow(row)) {
-        rows.add(row);
-      } else {
-        // Clean up a button injected before a turn's role was available or if
-        // ChatGPT reuses DOM while navigating between conversations.
-        row.querySelector(`.${BTN_CLASS}`)?.remove();
-      }
-    });
+    // Compatibility fallback for the original renderer, whose action row had
+    // no stable attribute of its own and was located through the Copy button.
+    const legacyAnchorSelector =
+      'button[data-testid="copy-turn-action-button"], button[aria-label="Copy response" i]';
+    const legacyAnchors = [
+      ...(root.matches?.(legacyAnchorSelector) ? [root] : []),
+      ...(root.querySelectorAll?.(legacyAnchorSelector) || []),
+    ];
+    legacyAnchors.forEach((button) => rows.add(button.parentElement));
+
+    for (const row of rows) {
+      if (isAssistantActionRow(row)) continue;
+      // Clean up a button injected before a turn's role/content was available,
+      // or when ChatGPT reuses DOM while navigating between conversations.
+      row?.querySelector(`.${BTN_CLASS}`)?.remove();
+      rows.delete(row);
+    }
     return rows;
   }
 
