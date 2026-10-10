@@ -221,8 +221,10 @@
 
   /* ---------------- button injection ---------------- */
 
-  const SPEAKER_SVG =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+  // A glass prism: the beam enters on the left and reaches the right face,
+  // where the bloom and sound waves drawn in styles.css take over.
+  const PRISM_SVG =
+    '<svg viewBox="0 0 28 28" width="28" height="28" fill="none" aria-hidden="true"><line x1="1.5" y1="15.2" x2="8.5" y2="13" stroke="#fff" stroke-width="0.8" stroke-linecap="round"/><line x1="8.5" y1="13" x2="14.5" y2="13" stroke="rgba(255,255,255,0.45)" stroke-width="0.6"/><polygon points="11.5 7.5 17.5 18.5 5.5 18.5" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.95)" stroke-width="0.85" stroke-linejoin="round"/><polygon points="12 9.9 16 17.5 13.9 17.5" fill="rgba(255,240,205,0.7)"/><polygon points="7.2 17.6 9.6 13.4 10.6 17.6" fill="rgba(255,255,255,0.22)"/><circle cx="14.5" cy="13" r="1" fill="#fff"/></svg>';
 
   const GRIP_SVG =
     '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>';
@@ -257,7 +259,7 @@
     }
     if (loadingBtn) {
       loadingBtn.classList.remove('cgpt-ah-loading');
-      loadingBtn.innerHTML = SPEAKER_SVG;
+      loadingBtn.innerHTML = PRISM_SVG;
       loadingBtn = null;
     }
   }
@@ -373,7 +375,7 @@
     btn.type = 'button';
     btn.title = 'Play audio';
     btn.setAttribute('aria-label', 'Play audio with floating player');
-    btn.innerHTML = SPEAKER_SVG;
+    btn.innerHTML = PRISM_SVG;
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
