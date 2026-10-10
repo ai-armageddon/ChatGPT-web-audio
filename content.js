@@ -8,6 +8,10 @@
   'use strict';
 
   const BTN_CLASS = 'cgpt-audio-hijacker-btn';
+  const NATIVE_BTN_ATTR = 'data-cgpt-ah-native';
+  // The native button's label follows its state: "Read aloud",
+  // "Loading audio…", then "Stop reading aloud" while playing.
+  const NATIVE_READ_ALOUD_LABEL = /read(ing)? aloud|loading audio/i;
   const PANEL_ID = 'cgpt-audio-hijacker-panel';
   const SPEED_OPTIONS = [1, 1.25, 1.5, 1.75, 2];
   const DEFAULT_SPEED = 1.5;
@@ -142,10 +146,27 @@
         `button[data-testid="voice-play-turn-action-button"]:not(.${BTN_CLASS})`
       ) ||
       Array.from(scope.querySelectorAll(`button:not(.${BTN_CLASS})`)).find((b) =>
-        /read aloud/i.test(b.getAttribute('aria-label') || '')
+        NATIVE_READ_ALOUD_LABEL.test(b.getAttribute('aria-label') || '')
       ) ||
       null
     );
+  }
+
+  // The native button is a toggle, so once the site considers a turn to be
+  // playing another click on it stops playback instead of starting it.
+  function isNativePlaying(button) {
+    return (
+      button.getAttribute('aria-pressed') === 'true' ||
+      /stop/i.test(button.getAttribute('aria-label') || '')
+    );
+  }
+
+  // Our button replaces ChatGPT's own. The native one has to stay in the DOM
+  // (clicking it is how playback starts), so tag it and let styles.css hide it;
+  // the tag survives the label changing between its states.
+  function hideNativeReadAloud(row) {
+    const native = findNativeReadAloudButton(row);
+    if (native && !native.hasAttribute(NATIVE_BTN_ATTR)) native.setAttribute(NATIVE_BTN_ATTR, '');
   }
 
   function findOverflowButton(scope) {
@@ -339,6 +360,7 @@
       // Clean up a button injected before a turn's role/content was available,
       // or when ChatGPT reuses DOM while navigating between conversations.
       row?.querySelector(`.${BTN_CLASS}`)?.remove();
+      row?.querySelector(`[${NATIVE_BTN_ATTR}]`)?.removeAttribute(NATIVE_BTN_ATTR);
       rows.delete(row);
     }
     return rows;
@@ -355,6 +377,13 @@
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      // This turn is already loaded (playing or paused): resume or pause it
+      // rather than clicking the native toggle, which would stop it.
+      const native = findNativeReadAloudButton(row);
+      if (native && isNativePlaying(native) && activeAudio?.hasAttribute('src')) {
+        togglePlay();
+        return;
+      }
       setBtnLoading(btn);
       triggerReadAloud(row);
     });
@@ -362,7 +391,10 @@
   }
 
   function scanAndInject(root) {
-    findActionRows(root).forEach(injectButton);
+    findActionRows(root).forEach((row) => {
+      injectButton(row);
+      hideNativeReadAloud(row);
+    });
   }
 
   /* ---------------- audio hijacking ---------------- */

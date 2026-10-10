@@ -1,41 +1,64 @@
 /* Theme tokens follow ChatGPT's own light/dark class on <html>,
    so the injected UI always matches the site's current theme. */
 
-/* Injected speaker button in the message action row — ghost style,
-   visually consistent with ChatGPT's native action buttons */
+/* Injected speaker button in the message action row. It replaces ChatGPT's
+   own Read Aloud button, so it carries a shifting gradient to stand apart
+   from the ghost-style native actions beside it. */
 .cgpt-audio-hijacker-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-right: 4px;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
   border: none;
   border-radius: 50%;
-  background: transparent;
-  color: #5d5d5d;
+  background: #7c3aed;
+  color: #ffffff;
   cursor: pointer;
   flex-shrink: 0;
   align-self: center;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+/* The gradient is a strip wider than the button that slides behind the icon:
+   animating transform stays on the compositor, where animating
+   background-position would repaint every button on every frame. */
+.cgpt-audio-hijacker-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 400%;
+  z-index: -1;
+  background: linear-gradient(90deg, #2563eb, #7c3aed, #db2777, #ea580c, #db2777, #7c3aed, #2563eb);
+  animation: cgpt-ah-gradient 7s ease-in-out infinite alternate;
+}
+@keyframes cgpt-ah-gradient {
+  to {
+    transform: translateX(-75%);
+  }
 }
 .cgpt-audio-hijacker-btn:hover {
-  background: rgba(0, 0, 0, 0.07);
-  color: #0d0d0d;
+  filter: brightness(1.15);
 }
 .cgpt-audio-hijacker-btn:active {
   transform: scale(0.92);
 }
 .cgpt-audio-hijacker-btn:focus-visible {
   outline: 2px solid #3b82f6;
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
-html.dark .cgpt-audio-hijacker-btn {
-  color: #b4b4b4;
-}
-html.dark .cgpt-audio-hijacker-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ececec;
+
+/* ChatGPT's own Read Aloud button: hidden rather than removed, because our
+   button starts playback by clicking it. Its tooltip wrapper goes with it so
+   the row keeps no empty gap. */
+[data-cgpt-ah-native],
+span:has(> [data-cgpt-ah-native]) {
+  display: none !important;
 }
 
 /* Loading spinner while Read Aloud audio is being fetched */
@@ -1016,7 +1039,8 @@ html.dark #cgpt-ah-onboard {
     transition-duration: 0.01s !important;
   }
   #cgpt-ah-pilldock .cgpt-ah-wave i,
-  #cgpt-ah-onboard .pv-ball i {
+  #cgpt-ah-onboard .pv-ball i,
+  .cgpt-audio-hijacker-btn::before {
     animation: none;
   }
   #cgpt-ah-onboard .cgpt-ah-ob-card {

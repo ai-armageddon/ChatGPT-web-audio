@@ -62,6 +62,31 @@
     };
   }
 
+  // Once Read Aloud starts, ChatGPT assigns `audio.onpause` a handler that
+  // tears playback down (aborts the stream, clears `src`, rewinds to zero), so
+  // a pause from the extension's controls left nothing to resume. The site
+  // stops playback by calling that teardown directly and only reaches it
+  // through `onpause` for pauses it did not start, so shadow the property on
+  // the element: assignments still succeed but never register a listener.
+  const pauseGuarded = new WeakSet();
+  function guardPauseHandler(audio) {
+    if (pauseGuarded.has(audio)) return;
+    pauseGuarded.add(audio);
+
+    let siteHandler = audio.onpause;
+    audio.onpause = null;
+    Object.defineProperty(audio, 'onpause', {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return siteHandler;
+      },
+      set(handler) {
+        siteHandler = typeof handler === 'function' ? handler : null;
+      },
+    });
+  }
+
   const origPlay = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function (...args) {
     try {
@@ -70,6 +95,9 @@
         this.setAttribute('data-cgpt-ah-adopted', '1');
         document.body.appendChild(this);
       }
+
+      // Voice mode plays a live MediaStream, which is not ours to manage.
+      if (this.tagName === 'AUDIO' && !this.srcObject) guardPauseHandler(this);
 
       if (this.tagName === 'AUDIO') {
         const mediaSource = mediaSourcesByUrl.get(this.currentSrc || this.src);
