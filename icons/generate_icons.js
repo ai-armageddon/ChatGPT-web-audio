@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates PNG icons at 16, 32, 48, and 128px from icon.svg
+ * Generates PNG icons at 16, 32, 48, and 128px from icon-source.png
  * Run: node generate_icons.js
  * Requires: npm install sharp (one-time)
  */
@@ -8,7 +8,7 @@ const sharp = require('sharp');
 const path = require('path');
 
 const sizes = [16, 32, 48, 128];
-const src = path.join(__dirname, 'icon.svg');
+const src = path.join(__dirname, 'icon-source.png');
 
 (async () => {
   for (const size of sizes) {

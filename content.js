@@ -1,4 +1,4 @@
-/* ChatGPT Audio Hijacker — content script
+/* ChatGPT-web-audio — content script
  * 1. Injects a speaker button into playable assistant text response action rows.
  * 2. Clicking it triggers OpenAI's native "Read Aloud" (directly or via the overflow menu).
  * 3. Hijacks the native <audio> element and routes control to a floating, draggable media panel.
@@ -31,6 +31,7 @@
   // Clearance kept between the pill and whatever it floats above, so it does
   // not sit on top of the composer or the message action row.
   const PILL_GAP = 6;
+  const RESCAN_DELAY_MS = 150;
   const RING_R = 23;
   const RING_C = 2 * Math.PI * RING_R;
   const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -221,8 +222,9 @@
 
   /* ---------------- button injection ---------------- */
 
-  const SPEAKER_SVG =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+  // The artwork is a raster image, so the button holds an empty element that
+  // styles.css paints with it.
+  const BTN_ICON_HTML = '<span class="cgpt-ah-icon" aria-hidden="true"></span>';
 
   const GRIP_SVG =
     '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>';
@@ -257,18 +259,22 @@
     }
     if (loadingBtn) {
       loadingBtn.classList.remove('cgpt-ah-loading');
-      loadingBtn.innerHTML = SPEAKER_SVG;
+      loadingBtn.innerHTML = BTN_ICON_HTML;
       loadingBtn = null;
     }
   }
 
-  function assistantContentText(row, turn) {
+  const renderedText = (element) => element.innerText || '';
+  const sourceText = (element) => element.textContent || '';
+
+  function assistantContentText(row, turn, textOf = renderedText) {
     // Older turns put the role on the message body; the newer list renderer
     // puts the role on the <li> and marks its Markdown body explicitly.
     const content = turn?.querySelector(
       '[data-assistant-markdown], [data-message-author-role="assistant"]'
     );
-    if (content?.innerText?.trim()) return content.innerText.trim();
+    const contentText = content ? textOf(content).trim() : '';
+    if (contentText) return contentText;
 
     // The current signed-in renderer groups a user prompt and assistant reply
     // into one turn. Its assistant attribution is a sibling of the response
@@ -278,7 +284,7 @@
     if (attribution?.parentElement) {
       const text = Array.from(attribution.parentElement.children)
         .filter((element) => element !== attribution)
-        .map((element) => element.innerText || '')
+        .map(textOf)
         .join(' ')
         .trim();
       if (text) return text;
@@ -300,7 +306,7 @@
           !element.matches(ACTION_ROW_SELECTOR) &&
           !element.matches('[data-message-attribution], [data-conversation-role="assistant"]')
         )
-        .map((element) => element.innerText || '')
+        .map(textOf)
         .join(' ')
         .replace(/^\s*chatgpt said:\s*/i, '')
         .trim();
@@ -308,7 +314,9 @@
     return '';
   }
 
-  function isAssistantActionRow(row) {
+  // Whether the row belongs to an assistant turn, judged from its structure
+  // alone and not from what the turn currently says.
+  function isAssistantRowShape(row) {
     if (!row) return false;
 
     const turn = row.closest(TURN_SELECTOR);
@@ -330,15 +338,32 @@
         'button[aria-label="Copy" i]',
         'button[aria-label="Rate response" i]',
         'button[aria-label="Regenerate response" i]',
+        `button[${NATIVE_BTN_ATTR}]`,
       ].join(', ')));
-    if (!explicitlyAssistant) return false;
-
-    // Read Aloud is only available when the assistant turn contains readable
-    // text. Image-only generations can still receive an action row.
-    return Boolean(assistantContentText(row, turn));
+    return explicitlyAssistant;
   }
 
-  function findActionRows(root) {
+  function isAssistantActionRow(row) {
+    // Read Aloud is only available when the assistant turn contains readable
+    // text. Image-only generations can still receive an action row.
+    return (
+      isAssistantRowShape(row) &&
+      Boolean(assistantContentText(row, row.closest(TURN_SELECTOR)))
+    );
+  }
+
+  // innerText is empty for text that exists but is not being rendered at this
+  // instant, which is different from a reply with nothing to read. A row in
+  // that state keeps whatever it already has: it must not lose its button, or
+  // ChatGPT's own button would resurface in its place.
+  function hasUnrenderedText(row) {
+    return (
+      isAssistantRowShape(row) &&
+      Boolean(assistantContentText(row, row.closest(TURN_SELECTOR), sourceText))
+    );
+  }
+
+  function candidateRows(root) {
     const rows = new Set();
     if (root.matches?.(ACTION_ROW_SELECTOR)) rows.add(root);
     const containingRow = root.closest?.(ACTION_ROW_SELECTOR);
@@ -354,14 +379,19 @@
       ...(root.querySelectorAll?.(legacyAnchorSelector) || []),
     ];
     legacyAnchors.forEach((button) => rows.add(button.parentElement));
+    return rows;
+  }
 
+  function findActionRows(root) {
+    const rows = candidateRows(root);
     for (const row of rows) {
       if (isAssistantActionRow(row)) continue;
+      rows.delete(row);
+      if (hasUnrenderedText(row)) continue;
       // Clean up a button injected before a turn's role/content was available,
       // or when ChatGPT reuses DOM while navigating between conversations.
       row?.querySelector(`.${BTN_CLASS}`)?.remove();
       row?.querySelector(`[${NATIVE_BTN_ATTR}]`)?.removeAttribute(NATIVE_BTN_ATTR);
-      rows.delete(row);
     }
     return rows;
   }
@@ -373,7 +403,7 @@
     btn.type = 'button';
     btn.title = 'Play audio';
     btn.setAttribute('aria-label', 'Play audio with floating player');
-    btn.innerHTML = SPEAKER_SVG;
+    btn.innerHTML = BTN_ICON_HTML;
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -395,6 +425,19 @@
       injectButton(row);
       hideNativeReadAloud(row);
     });
+  }
+
+  // Page-wide pass that only ever adds: rows that already carry our button are
+  // left alone, so it stays cheap enough to run while a reply is streaming.
+  function restoreMissingButtons() {
+    for (const row of candidateRows(document.body)) {
+      if (!row) continue;
+      if (!row.querySelector(`.${BTN_CLASS}`)) {
+        if (!isAssistantActionRow(row)) continue;
+        injectButton(row);
+      }
+      hideNativeReadAloud(row);
+    }
   }
 
   /* ---------------- audio hijacking ---------------- */
@@ -1213,6 +1256,19 @@
 
   /* ---------------- observers ---------------- */
 
+  // Added nodes are handled as they arrive, but that alone cannot notice a
+  // button of ours being dropped, or a row whose turn only became readable
+  // after the row itself was added. A throttled pass over the whole page puts
+  // back whatever went missing.
+  let rescanTimer = null;
+  function queueRescan() {
+    if (rescanTimer) return;
+    rescanTimer = setTimeout(() => {
+      rescanTimer = null;
+      restoreMissingButtons();
+    }, RESCAN_DELAY_MS);
+  }
+
   function startObserver() {
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -1226,6 +1282,7 @@
           }
         }
       }
+      queueRescan();
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }

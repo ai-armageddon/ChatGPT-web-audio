@@ -1,4 +1,4 @@
-# ChatGPT Audio Hijacker
+# ChatGPT-web-audio
 
 A Chrome extension that supercharges ChatGPT's Read Aloud feature with a beautiful floating media controller and one-click access.
 
@@ -33,7 +33,7 @@ Beautiful floating panel with all playback controls.
 
 ### Method 2: Manual Installation
 1. Download this repository as a ZIP file
-2. Extract the ZIP to a folder (e.g., `chatgpt-audio-hijacker`)
+2. Extract the ZIP to a folder (e.g., `ChatGPT-web-audio`)
 3. Open Chrome and navigate to `chrome://extensions`
 4. Enable **Developer mode** (toggle in top-right)
 5. Click **Load unpacked** and select the extracted folder
@@ -67,8 +67,8 @@ Beautiful floating panel with all playback controls.
 ### Building from Source
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/chatgpt-audio-hijacker.git
-cd chatgpt-audio-hijacker
+git clone https://github.com/ai-armageddon/ChatGPT-web-audio.git
+cd ChatGPT-web-audio
 
 # Load in Chrome
 # 1. Open chrome://extensions
@@ -76,15 +76,19 @@ cd chatgpt-audio-hijacker
 # 3. Click "Load unpacked" and select this folder
 ```
 
+### Versioning
+The version in `manifest.json` follows the commit count: the minor number goes up by one every 3 commits, and the patch number counts the commits in between (commit 15 is `0.5.0`, commit 16 is `0.5.1`). Run `node version.js` before committing to set it.
+
 ### Project Structure
 ```
-chatgpt-audio-hijacker/
+ChatGPT-web-audio/
 ├── manifest.json          # Extension manifest
 ├── content.js             # Main content script
 ├── injector.js            # MAIN-world audio patch
 ├── styles.css             # UI styles
+├── version.js             # Sets the version from the commit count
 ├── icons/                 # Extension icons
-│   ├── icon.svg
+│   ├── icon-source.png
 │   ├── icon16.png
 │   ├── icon32.png
 │   ├── icon48.png
@@ -137,8 +141,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 If you encounter any issues or have questions:
-- 🐛 [Report an Issue](https://github.com/yourusername/chatgpt-audio-hijacker/issues)
-- 💬 [Discussions](https://github.com/yourusername/chatgpt-audio-hijacker/discussions)
+- 🐛 [Report an Issue](https://github.com/ai-armageddon/ChatGPT-web-audio/issues)
+- 💬 [Discussions](https://github.com/ai-armageddon/ChatGPT-web-audio/discussions)
 - 📧 [Email Support](mailto:support@example.com)
 
 ---

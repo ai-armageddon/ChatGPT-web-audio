@@ -1,76 +1,36 @@
 /* Theme tokens follow ChatGPT's own light/dark class on <html>,
    so the injected UI always matches the site's current theme. */
 
-/* Injected speaker button in the message action row. It replaces ChatGPT's
-   own Read Aloud button, so it is styled as a cut gem refracting light to
-   stand apart from the ghost-style native actions beside it. */
+/* Injected Read Aloud button in the message action row. It replaces
+   ChatGPT's own, so it is built to sit among the native actions: same hit
+   area, same icon size, and the site's own colour tokens, which makes it
+   follow the theme and the user's text size without any rules of ours. */
 .cgpt-audio-hijacker-btn {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-right: 6px;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   border: none;
-  border-radius: 50%;
-  /* Shows only as the thin bezel left around the two layers below. */
-  background: linear-gradient(135deg, #ffffff, #b9c2ff 45%, #ffffff 60%, #ffc9ec);
-  box-shadow: 0 0 0 1px rgba(110, 100, 190, 0.25), 0 0 9px rgba(140, 150, 255, 0.5);
-  color: #17123a;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-text-tertiary, #8f8f8f);
   cursor: pointer;
   flex-shrink: 0;
   align-self: center;
-  transition: filter 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
-/* Two layers turn against each other behind the icon: spectral facets below,
-   white glints above. The facets have uneven widths and alternate which edge
-   is pale, so their crossings keep changing shape the way refracted light
-   does. Only transforms animate, which keeps every button on the compositor. */
-.cgpt-audio-hijacker-btn::before,
-.cgpt-audio-hijacker-btn::after {
-  content: '';
-  position: absolute;
-  inset: 1.5px;
-  z-index: -1;
-  border-radius: 50%;
-}
-.cgpt-audio-hijacker-btn::before {
-  background: conic-gradient(
-    from 0deg,
-    #e9fbff 0deg, #38d6ff 40deg,
-    #8f6bff 40deg, #e6dcff 95deg,
-    #fff0f8 95deg, #ff5fb7 150deg,
-    #ffb13d 150deg, #fff6d9 190deg,
-    #eafff3 190deg, #2fe39a 250deg,
-    #3aa0ff 250deg, #e4f1ff 300deg,
-    #f6ebff 300deg, #c46bff 360deg
-  );
-  animation: cgpt-ah-prism 12s linear infinite;
-}
-.cgpt-audio-hijacker-btn::after {
-  /* The soft disc in the middle keeps the icon legible over the facets. */
-  background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.42) 0 38%, rgba(255, 255, 255, 0) 52%),
-    conic-gradient(
-      from 0deg,
-      rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0.85) 28deg,
-      rgba(255, 255, 255, 0) 28deg 110deg, rgba(255, 255, 255, 0.6) 150deg,
-      rgba(255, 255, 255, 0) 150deg 215deg, rgba(255, 255, 255, 0.75) 236deg,
-      rgba(255, 255, 255, 0) 236deg 300deg, rgba(255, 255, 255, 0.5) 345deg,
-      rgba(255, 255, 255, 0) 345deg
-    );
-  animation: cgpt-ah-prism 8s linear infinite reverse;
-}
-@keyframes cgpt-ah-prism {
-  to {
-    transform: rotate(360deg);
-  }
+/* Speaker-grille artwork. It is pale, so a hairline shadow keeps its edge
+   visible on ChatGPT's light theme. */
+.cgpt-ah-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: url("chrome-extension://__MSG_@@extension_id__/icons/icon128.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.45)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
 }
 .cgpt-audio-hijacker-btn:hover {
-  filter: saturate(1.4);
+  background: var(--color-background-primary-ghost-hover, rgba(127, 127, 127, 0.16));
 }
 .cgpt-audio-hijacker-btn:active {
   transform: scale(0.92);
@@ -1066,9 +1026,7 @@ html.dark #cgpt-ah-onboard {
     transition-duration: 0.01s !important;
   }
   #cgpt-ah-pilldock .cgpt-ah-wave i,
-  #cgpt-ah-onboard .pv-ball i,
-  .cgpt-audio-hijacker-btn::before,
-  .cgpt-audio-hijacker-btn::after {
+  #cgpt-ah-onboard .pv-ball i {
     animation: none;
   }
   #cgpt-ah-onboard .cgpt-ah-ob-card {
